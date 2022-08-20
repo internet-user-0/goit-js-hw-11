@@ -90,7 +90,9 @@ function onLoadMoreBtn(){
 
 const createMarkup = img => `
    <div class="photo-card">
-      <img class="gallery__image" src="${img.webformatURL}" alt="${img.tags}" width="370px" loading="lazy" />
+   <a href="${img.largeImageURL}" class="gallery_link">
+   <img class="gallery__image" src="${img.webformatURL}" alt="${img.tags}" width="370px" loading="lazy" />
+   </a>
       <div class="info">
             <p class="info-item">
             <b>Likes<br>${img.likes}</b>
