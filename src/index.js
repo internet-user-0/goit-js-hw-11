@@ -1,65 +1,35 @@
 import './css/styles.css';
+import { getImages } from './getImages';
 import Notiflix from 'notiflix';
-import axios from "axios";
 import SimpleLightbox from "simplelightbox";
 import "simplelightbox/dist/simple-lightbox.min.css";
-
 
 const refs = {
 input: document.querySelector('input'),
 form: document.querySelector('.search-form'),
 buttonLoad: document.querySelector('.load-more'),
 gallery: document.querySelector('.gallery'),
-alert: document.querySelector('.alert')
-}
+};
 
-const BASE_URL = "https://pixabay.com/api/";
+export let CURRENT_PAGE = 1;
 
-refs.form.addEventListener('submit', (onFormSubmit));
-refs.buttonLoad.addEventListener('click', (onLoadMoreBtn))
-
-let isAlertVisible = false;
-let nameSearch = refs.input.value;
-let lightbox;
-let currentPage = 1;
-let perPage = 40;
-const totalPages = 500 / perPage;
-console.log(totalPages);
+refs.buttonLoad.classList.add('is-hidden');
 
 
-refs.buttonLoad.classList.add('invisible');
-
-
-async function fetchImages() {
-   try {
-      const response = await axios.get(`${BASE_URL}?key=29362166-5d2238b188a86f65197883688&image_type=photo&orientation=horizontal&safesearch=true&q=${nameSearch}&page=${currentPage}&per_page=${perPage}`);
-         const arrayImages = await response.data.hits;
-
-      if(arrayImages.length === 0) {
-            Notiflix.Notify.warning(
-            "Sorry, there are no images matching your search query. Please try again.")
-      } else if(arrayImages.length !== 0) {
-            refs.buttonLoad.classList.remove('invisible')
-      }
-      return {arrayImages,
-            totalHits: response.data.totalHits,}
-   } catch(error) {
-      console.log(error)
-   }
-}
+refs.form.addEventListener('submit', onFormSubmit);
 
 
 function onFormSubmit(e) {
-e.preventDefault()
+e.preventDefault();
+CURRENT_PAGE = 1;
 
 refs.gallery.innerHTML = '';
 nameSearch = refs.input.value;
-nameSearch;
-refs.buttonLoad.classList.add('invisible')
 
-fetchImages().then(images => {
+
+getImages(CURRENT_PAGE).then(images => {
       insertMarkup(images);
-      currentPage += 1;
+      CURRENT_PAGE += 1;
    }).catch(error => (console.log(error)))
 
 
@@ -72,25 +42,9 @@ fetchImages().then(images => {
 
 
 
-function onLoadMoreBtn(){
-   if (currentPage > totalPages) {
-      refs.buttonLoad.classList.add('invisible');
-      return toggleAlertPopup()
-   }
-
-   nameSearch = refs.input.value;
-
-   fetchImages() 
-   .then(images => {
-      insertMarkup(images);   
-      currentPage += 1;})
-   .catch(error => (console.log(error)))
-}
-
-
 const createMarkup = img => `
    <div class="photo-card">
-   <a href="${img.largeImageURL}" class="gallery_link">
+   <a href="${img.largeImageURL}" class="gallery-link">
    <img class="gallery__image" src="${img.webformatURL}" alt="${img.tags}" width="370px" loading="lazy" />
    </a>
       <div class="info">
@@ -111,29 +65,40 @@ const createMarkup = img => `
 `; 
 
 function generateMarkup(  { arrayImages, totalHits }) {
-   if (currentPage === 1) {
-      Notiflix.Notify.success(`Hoooray! We found ${totalHits} images!`);
-   }
-   return arrayImages.reduce((acc, img) => acc + createMarkup(img), "") 
+if (arrayImages.length > 0){
+   Notiflix.Notify.success(`Hoooray! We found ${totalHits} images!`);
+   refs.buttonLoad.classList.remove('is-hidden')
+   console.log(arrayImages.length)
+   return arrayImages.reduce((acc, img) => acc + createMarkup(img), "");
+}
 };
 
 
 function insertMarkup(arrayImages) {
    const result = generateMarkup(arrayImages);
-   refs.gallery.insertAdjacentHTML('beforeend', result);
-
-lightbox.refresh();
+   if(result !== undefined){
+      refs.gallery.insertAdjacentHTML('beforeend', result);
+      lightbox.refresh();
+   }else{
+      Notiflix.Notify.warning("Sorry, there are no images matching your search query. Please try again.");
+      refs.buttonLoad.classList.add('is-hidden')
+      return;
+   }
 };
 
 
-function toggleAlertPopup() {
-   if (isAlertVisible) {
-      return;
-   }
-   isAlertVisible = true;
-   refs.alert.classList.add("is-visible");
-   setTimeout(() => {
-      refs.alert.classList.remove("is-visible");
-      isAlertVisible = false;
-   }, 3000);
+refs.buttonLoad.addEventListener('click', onLoadMoreBtn);
+
+function onLoadMoreBtn(){
+   nameSearch = refs.input.value;
+
+   console.log(CURRENT_PAGE)
+   getImages() 
+   .then(images => {
+      insertMarkup(images);
+      CURRENT_PAGE += 1;})
+   .catch(() => {
+      refs.buttonLoad.classList.add('is-hidden');
+      Notiflix.Notify.warning("We're sorry, but you've reached the end of search results.");
+   })
 };
