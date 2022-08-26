@@ -11,34 +11,32 @@ buttonLoad: document.querySelector('.load-more'),
 gallery: document.querySelector('.gallery'),
 };
 
-export let CURRENT_PAGE = 1;
+let currentPage = 1;
+let nameSearch = '';
+const lightbox = new SimpleLightbox('.gallery a', {
+   captionsData: 'alt',
+   captionPosition: 'bottom',
+   captionDelay: 250,
+});
+
 
 refs.buttonLoad.classList.add('is-hidden');
 
-
 refs.form.addEventListener('submit', onFormSubmit);
+refs.buttonLoad.addEventListener('click', onLoadMoreBtn);
 
 
-function onFormSubmit(e) {
+async function onFormSubmit(e) {
 e.preventDefault();
-CURRENT_PAGE = 1;
+   currentPage = 1;
 
 refs.gallery.innerHTML = '';
 nameSearch = refs.input.value;
 
-
-getImages(CURRENT_PAGE).then(images => {
+await getImages(currentPage, nameSearch).then(images => {
       insertMarkup(images);
-      CURRENT_PAGE += 1;
-   }).catch(error => (console.log(error)))
-
-
-   lightbox = new SimpleLightbox('.gallery a', {
-      captionsData: 'alt',
-      captionPosition: 'bottom',
-      captionDelay: 250,
-   });
-}
+   })
+};
 
 
 
@@ -64,19 +62,20 @@ const createMarkup = img => `
    </div>
 `; 
 
-function generateMarkup(  { arrayImages, totalHits }) {
+function generateMarkup(arrayImages) {
 if (arrayImages.length > 0){
-   Notiflix.Notify.success(`Hoooray! We found ${totalHits} images!`);
-   refs.buttonLoad.classList.remove('is-hidden')
-   console.log(arrayImages.length)
    return arrayImages.reduce((acc, img) => acc + createMarkup(img), "");
 }
 };
 
 
-function insertMarkup(arrayImages) {
+function insertMarkup({arrayImages, totalHits}) {
    const result = generateMarkup(arrayImages);
+   
+   
    if(result !== undefined){
+      Notiflix.Notify.success(`Hoooray! We found ${totalHits} images!`);
+      refs.buttonLoad.classList.remove('is-hidden')
       refs.gallery.insertAdjacentHTML('beforeend', result);
       lightbox.refresh();
    }else{
@@ -84,21 +83,26 @@ function insertMarkup(arrayImages) {
       refs.buttonLoad.classList.add('is-hidden')
       return;
    }
-};
-
-
-refs.buttonLoad.addEventListener('click', onLoadMoreBtn);
-
-function onLoadMoreBtn(){
-   nameSearch = refs.input.value;
-
-   console.log(CURRENT_PAGE)
-   getImages() 
-   .then(images => {
-      insertMarkup(images);
-      CURRENT_PAGE += 1;})
-   .catch(() => {
+   if (arrayImages.length < 40) {
       refs.buttonLoad.classList.add('is-hidden');
       Notiflix.Notify.warning("We're sorry, but you've reached the end of search results.");
-   })
+   }
 };
+
+
+
+function onLoadMoreBtn(){
+   nameSearch;
+   currentPage += 1;
+
+   console.log(currentPage)
+   getImages(currentPage, nameSearch)
+   .then(images => {
+      insertMarkup(images);});
+
+      if (arrayImages.length < 40) {
+         refs.buttonLoad.classList.add('is-hidden');
+         Notiflix.Notify.warning("We're sorry, but you've reached the end of search results.");
+      }
+};
+
